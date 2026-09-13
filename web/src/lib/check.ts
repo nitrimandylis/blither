@@ -16,11 +16,6 @@ const REGISTRIES: Record<string, Registry> = {
     api: (s) => `https://formulae.brew.sh/api/formula/${s}.json`,
     url: (s) => `https://formulae.brew.sh/formula/${s}`,
   },
-  cask: {
-    label: "brew cask",
-    api: (s) => `https://formulae.brew.sh/api/cask/${s}.json`,
-    url: (s) => `https://formulae.brew.sh/cask/${s}`,
-  },
   pypi: {
     label: "pypi",
     api: (s) => `https://pypi.org/pypi/${s}/json`,
@@ -41,6 +36,11 @@ const REGISTRIES: Record<string, Registry> = {
     api: (s) => `https://pubapi.registry.google/rdap/domain/${s}.dev`,
     url: (s) => `https://${s}.dev`,
   },
+  app: {
+    label: ".app",
+    api: (s) => `https://pubapi.registry.google/rdap/domain/${s}.app`,
+    url: (s) => `https://${s}.app`,
+  },
   ai: {
     label: ".ai",
     api: (s) => `https://rdap.identitydigital.services/rdap/domain/${s}.ai`,
@@ -50,12 +50,12 @@ const REGISTRIES: Record<string, Registry> = {
 
 const BY_CATEGORY: Record<string, string[]> = {
   cli: ["npm", "brew", "pypi", "crates"],
-  app: ["cask", "com", "dev"],
+  app: ["com", "app", "ai", "dev"],
   startup: ["com", "ai", "dev"],
 };
 
 export function slugOf(name: string): string {
-  return name.replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+  return name.replace(/ /g, "");
 }
 
 async function probe(registry: Registry, slug: string): Promise<Check> {

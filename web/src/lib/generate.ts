@@ -12,11 +12,13 @@ const TEMPERATURES: Record<Style, number[]> = {
 const ATTEMPTS = 200;
 
 // Word parts that real product names glue onto a hint: token+pilot, grid+cast, drone+hub.
-const SUFFIXES = ["pilot", "cast", "pack", "hub", "kit", "base", "flow", "stack", "lab", "ly", "ify", "io", "sync",
-  "scope", "sense", "mind", "wise", "path", "lane", "loop", "nest", "wave", "shift", "spark", "forge", "craft",
-  "desk", "board", "box", "bit", "byte", "dock", "port", "gate", "link", "mate", "pal", "bot", "ai", "os", "ware",
-  "line", "note", "log", "map", "beam", "core", "grid", "deck", "drop", "leaf", "root", "seed", "well", "guard"];
-const PREFIXES = ["open", "auto", "quick", "true", "deep", "clear", "meta", "neo", "re", "co", "my", "go", "up", "pro"];
+// "sensible" only uses the plain ones; "bold" and "unhinged" add the odd ones.
+const PLAIN_SUFFIXES = ["pilot", "cast", "pack", "hub", "kit", "base", "flow", "stack", "lab", "sync", "desk",
+  "board", "box", "dock", "port", "link", "mate", "bot", "line", "note", "log", "map", "core", "deck", "drop"];
+const ODD_SUFFIXES = ["scope", "sense", "mind", "wise", "path", "lane", "loop", "nest", "wave", "shift", "spark",
+  "forge", "craft", "bit", "byte", "gate", "pal", "ware", "beam", "grid", "leaf", "root", "seed", "well", "guard",
+  "wire", "frame", "lens", "pulse", "mark"];
+const PREFIXES = ["open", "auto", "quick", "deep", "clear", "re", "co", "my", "go", "up"];
 const FILLER = new Set(["ai", "labs", "health", "app", "cli", "io", "tech", "bio", "technologies", "systems"]);
 const BLOCKED = ["fuck", "shit", "bitch", "cunt", "dick", "cock", "pussy", "nigg", "fag", "slut", "whore"];
 
@@ -164,11 +166,12 @@ function stems(hint: string): string[] {
 
 // hint glued to a word part. Suffix forms first; a prefix form is marked so it can rank lower,
 // since "openfoo" and "profoo" are generic
-function composed(hints: string[]): Array<{ name: string; prefixed: boolean }> {
+function composed(hints: string[], style: Style): Array<{ name: string; prefixed: boolean }> {
+  const suffixes = style === "sensible" ? PLAIN_SUFFIXES : [...PLAIN_SUFFIXES, ...ODD_SUFFIXES];
   const out = new Map<string, boolean>();
   for (const hint of hints) {
     const [word, bare] = stems(hint);
-    for (const suffix of SUFFIXES) {
+    for (const suffix of suffixes) {
       out.set(word + suffix, false);
       if (/^[aeiouy]/.test(suffix)) out.set(bare + suffix, false);
     }
@@ -189,11 +192,12 @@ function sharesTrigram(name: string, hints: string[]): boolean {
 
 export function generate(model: Model, category: string, style: Style, count: number, seed: number, hints: string[] = []): string[] {
   const random = mulberry32(seed);
-  const categories = model.manifest.categories;
+  const categoryId = Math.max(0, model.manifest.categories.indexOf(category));
   const allKnown = Object.values(model.known).flat();
   const temps = TEMPERATURES[style];
-  // three sources, ranked separately then interleaved, so a hinted batch always carries the hints
-  const pools = { glued: new Map<string, number>(), completed: new Map<string, number>(), wheel: new Map<string, number>() };
+  // two sources, ranked separately then interleaved (2 glued, 3 wheel), so a hinted batch always carries the hints.
+  // The wheel pool holds every model sample: free spins and spins started from a hint's first letters.
+  const pools = { glued: new Map<string, number>(), wheel: new Map<string, number>() };
 
   function consider(pool: Map<string, number>, name: string, logProb: number, bonus = 0) {
     if (pool.has(name) || !looksUsable(name)) return;
@@ -210,30 +214,36 @@ export function generate(model: Model, category: string, style: Style, count: nu
   for (const hint of hints) {
     for (let len = 3; len <= Math.min(5, hint.length - 1); len++) {
       for (let round = 0; round < temps.length * 3; round++) {
-        const chosen = category === "any" ? categories[Math.floor(random() * categories.length)] : category;
-        const { name, logProb } = sampleName(model, categories.indexOf(chosen), temps[round % temps.length], random, hint.slice(0, len));
+        const { name, logProb } = sampleName(model, categoryId, temps[round % temps.length], random, hint.slice(0, len));
         if (name.length - len < 3) continue;
-        consider(pools.completed, name, logProb);
+        consider(pools.wheel, name, logProb, 0.5);
       }
     }
   }
 
   // hint + word part, ranked by how name-like the model finds the result
-  for (const { name, prefixed } of composed(hints)) {
-    const chosen = category === "any" ? categories[Math.floor(random() * categories.length)] : category;
-    // a little seeded noise so "another" reshuffles the glued names too
-    consider(pools.glued, name, scoreName(model, categories.indexOf(chosen), name), (prefixed ? -0.3 : 0) + random() * 0.3);
+  for (const { name, prefixed } of composed(hints, style)) {
+    consider(pools.glued, name, scoreName(model, categoryId, name), prefixed ? -0.3 : 0);
   }
 
   for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
-    // "any" picks a random category per name so the batch mixes flavours
-    const chosen = category === "any" ? categories[Math.floor(random() * categories.length)] : category;
-    const { name, logProb } = sampleName(model, categories.indexOf(chosen), temps[attempt % temps.length], random);
-    consider(pools.wheel, name, logProb, hints.length && sharesTrigram(name, hints) ? 0.25 : 0);
+    const { name, logProb } = sampleName(model, categoryId, temps[attempt % temps.length], random);
+    // wheel names that echo a hint rank well above ones that do not
+    consider(pools.wheel, name, logProb, hints.length && sharesTrigram(name, hints) ? 0.5 : 0);
   }
   const rank = (pool: Map<string, number>) => [...pool.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => name);
-  const order = hints.length ? [pools.glued, pools.completed, pools.glued, pools.glued, pools.wheel] : [pools.wheel];
-  const ranked = order.map(rank);
+  // the glued list is the same for every seed, so shuffle its top eight or "another" would never change the lead
+  const shuffledTop = (list: string[], top: number) => {
+    const head = list.slice(0, top);
+    for (let i = head.length - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1));
+      [head[i], head[j]] = [head[j], head[i]];
+    }
+    return head.concat(list.slice(top));
+  };
+  const glued = shuffledTop(rank(pools.glued), 8);
+  const wheel = rank(pools.wheel);
+  const ranked = hints.length ? [glued, wheel, glued, wheel, wheel] : [wheel];
   const results: string[] = [];
   const perHint = new Map<string, number>();
   // walk the sources in turn; the known-name scan is the slow part, so it only runs on names that get this far

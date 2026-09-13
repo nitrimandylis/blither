@@ -1,3 +1,31 @@
+@font-face {
+  font-family: "Alpino";
+  src: url("/fonts/alpino-400.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Alpino";
+  src: url("/fonts/alpino-500.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/plex-mono-400.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/plex-mono-500.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+
 :root {
   --paper: #eef1f4;
   --ink: #101820;
@@ -6,8 +34,20 @@
   --free: #157a4b;
   --taken: #b42318;
   --cobalt: #1f3fbf;
-  --sans: "IBM Plex Sans", system-ui, sans-serif;
+  --sans: "Alpino", system-ui, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, monospace;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --paper: #12161e;
+  --ink: #e6eaee;
+  --muted: #8b95a0;
+  --rule: #2c333a;
+  --free: #4cc38a;
+  --taken: #f0725f;
+  --cobalt: #6f8cff;
+  color-scheme: dark;
 }
 
 * {
@@ -53,8 +93,18 @@ header {
   align-items: baseline;
 }
 
+header nav {
+  display: flex;
+  gap: 1.25rem;
+}
+
+header nav a[aria-current="page"] {
+  text-decoration-thickness: 2px;
+}
+
 .wordmark {
   font-weight: 500;
+  text-decoration: none;
 }
 
 .hero {
@@ -64,6 +114,8 @@ header {
 .lead {
   margin: 0;
   color: var(--muted);
+  font-size: inherit;
+  font-weight: 400;
 }
 
 .name {
@@ -96,6 +148,10 @@ header {
 
 .muted {
   color: var(--muted);
+}
+
+.mono {
+  font-family: var(--mono);
 }
 
 .checks {
@@ -236,13 +292,20 @@ button.quiet {
   color: var(--ink);
 }
 
+button.quiet[aria-pressed="true"] {
+  border-color: var(--cobalt);
+  color: var(--cobalt);
+}
+
 button.link {
   border: 0;
   padding: 0;
   background: none;
   color: inherit;
-  font-family: var(--mono);
   border-radius: 0;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
 }
 
 .batch {
@@ -258,11 +321,51 @@ button.link {
   gap: 0.4rem 1.5rem;
 }
 
+.batch .link {
+  text-decoration: none;
+}
+
+.kept,
+.batches {
+  margin-top: 3rem;
+}
+
+.kept ul,
+.batches ul {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+}
+
+.kept li,
+.batches li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--rule);
+}
+
+.kept li a {
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.batches li a {
+  text-decoration: none;
+  white-space: pre-wrap;
+}
+
+.kept li .link {
+  margin-left: auto;
+  color: var(--muted);
+}
+
 footer {
   margin-top: 5rem;
   max-width: 34rem;
   font-size: 0.95rem;
-  color: var(--ink);
 }
 
 footer p {

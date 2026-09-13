@@ -2,17 +2,20 @@ import { useEffect, useState, type CSSProperties, type FormEvent } from "react";
 import { checkName, type Check } from "./lib/check";
 import { cleanHints, generate, randomSeed, type Style } from "./lib/generate";
 import { loadModel, type Model } from "./lib/model";
+import { batchUrl, store } from "./lib/store";
+import History from "./History";
 
-const CATEGORIES = ["cli", "app", "startup", "any"] as const;
+const CATEGORIES = ["cli", "app", "startup"] as const;
 const STYLES: Style[] = ["sensible", "bold", "unhinged"];
 const BATCH = 5;
 
 type Category = (typeof CATEGORIES)[number];
 
-function readUrl() {
+function readInitial() {
   const params = new URLSearchParams(location.search);
-  const category = params.get("for") as Category | null;
-  const style = params.get("style") as Style | null;
+  const prefs = store.prefs();
+  const category = (params.get("for") ?? prefs.category) as Category | null;
+  const style = (params.get("style") ?? prefs.style) as Style | null;
   const seed = Number(params.get("seed"));
   return {
     category: category && CATEGORIES.includes(category) ? category : "cli",
@@ -20,13 +23,6 @@ function readUrl() {
     seed: Number.isInteger(seed) && seed > 0 ? seed : randomSeed(),
     hints: params.get("hints") ?? "",
   };
-}
-
-// The "any" batch mixes categories, so guess which one a name came from for the checks.
-function categoryFor(name: string, category: Category): string {
-  if (category !== "any") return category;
-  if (name.includes(" ") || name.endsWith(".ai")) return "startup";
-  return "cli";
 }
 
 // Types the name out one character at a time. Skipped when the user prefers reduced motion.
@@ -49,33 +45,65 @@ function useTyped(text: string): string {
   return shown;
 }
 
+// Light or dark: the remembered choice wins, otherwise the system's.
+function useTheme() {
+  const [theme, setTheme] = useState(() => store.prefs().theme ?? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
+  function toggle() {
+    const next = theme === "dark" ? "light" : "dark";
+    store.setPref("theme", next);
+    setTheme(next);
+  }
+  return { theme, toggle };
+}
+
 export default function App() {
+  const { theme, toggle } = useTheme();
+  const onHistory = location.pathname === "/history";
+  return (
+    <main>
+      <header>
+        <a className="wordmark" href="/">blither</a>
+        <nav>
+          <a href="/history" aria-current={onHistory ? "page" : undefined}>history</a>
+          <a href="https://github.com/nitrimandylis/blither">source</a>
+          <button type="button" className="link" onClick={toggle} aria-label={`switch to ${theme === "dark" ? "light" : "dark"} mode`}>
+            {theme === "dark" ? "light" : "dark"}
+          </button>
+        </nav>
+      </header>
+      {onHistory ? <History /> : <Namer />}
+    </main>
+  );
+}
+
+function Namer() {
   const [model, setModel] = useState<Model | null>(null);
-  const [{ category, style, seed, hints }, setState] = useState(readUrl);
+  const [{ category, style, seed, hints }, setState] = useState(readInitial);
   const [draft, setDraft] = useState(hints);
   const [names, setNames] = useState<string[]>([]);
   const [pick, setPick] = useState(0);
   const [checks, setChecks] = useState<Check[] | null>(null);
   const [copied, setCopied] = useState(false);
+  const [kept, setKept] = useState(() => new Set(store.kept().map((k) => k.name)));
 
   useEffect(() => {
     loadModel().then(setModel);
   }, []);
 
-  // Regenerate whenever the inputs change, and keep the URL shareable.
+  // Regenerate whenever the inputs change; keep the URL shareable and the batch in history.
   useEffect(() => {
     if (!model) return;
-    setNames(generate(model, category, style, BATCH, seed, cleanHints(hints)));
+    const batch = generate(model, category, style, BATCH, seed, cleanHints(hints));
+    setNames(batch);
     setPick(0);
-    const query = new URLSearchParams({ for: category, style, seed: String(seed) });
-    if (hints) query.set("hints", hints);
-    history.replaceState(null, "", `?${query}`);
+    history.replaceState(null, "", batchUrl({ category, style, seed, hints }));
+    store.setPref("category", category);
+    store.setPref("style", style);
+    store.logBatch({ names: batch, category, style, hints, seed, at: Date.now() });
   }, [model, category, style, seed, hints]);
-
-  function applyHints(event: FormEvent) {
-    event.preventDefault();
-    setState((s) => ({ ...s, hints: cleanHints(draft).join(" "), seed: randomSeed() }));
-  }
 
   const name = names[pick] ?? "";
   const typed = useTyped(name);
@@ -85,7 +113,7 @@ export default function App() {
     setChecks(null);
     setCopied(false);
     let cancelled = false;
-    checkName(name, categoryFor(name, category)).then((result) => {
+    checkName(name, category).then((result) => {
       if (!cancelled) setChecks(result);
     });
     return () => {
@@ -93,21 +121,28 @@ export default function App() {
     };
   }, [name, category]);
 
+  function applyHints(event: FormEvent) {
+    event.preventDefault();
+    setState((s) => ({ ...s, hints: cleanHints(draft).join(" "), seed: randomSeed() }));
+  }
+
   function copy() {
     navigator.clipboard.writeText(name).then(() => setCopied(true));
   }
 
-  const subject = category === "any" ? "thing" : category;
+  function keep() {
+    if (kept.has(name)) {
+      store.unkeep(name);
+    } else {
+      store.keep({ name, category, style, hints, seed, at: Date.now() });
+    }
+    setKept(new Set(store.kept().map((k) => k.name)));
+  }
 
   return (
-    <main>
-      <header>
-        <span className="wordmark">blither</span>
-        <a href="https://github.com/nitrimandylis/blither">source</a>
-      </header>
-
+    <>
       <section className="hero" aria-live="polite">
-        <p className="lead">your next {subject} is called</p>
+        <p className="lead">your next {category} is called</p>
         {model ? (
           <h1 className="name" style={{ "--len": Math.max(name.length, 6) } as CSSProperties}>
             {typed}
@@ -132,7 +167,7 @@ export default function App() {
           <label htmlFor="hints">about</label>
           <input id="hints" value={draft} onChange={(e) => setDraft(e.target.value)}
             placeholder="a few words on what it does" maxLength={60} autoComplete="off" spellCheck={false} />
-          <button type="submit" className="quiet" disabled={!model || cleanHints(draft).join(" ") === hints}>use</button>
+          <button type="submit" className="quiet" disabled={!model || cleanHints(draft).join(" ") === hints}>name it</button>
         </form>
         <fieldset>
           <legend>for a</legend>
@@ -158,6 +193,9 @@ export default function App() {
           <button type="button" onClick={() => setState((s) => ({ ...s, seed: randomSeed() }))} disabled={!model}>
             another
           </button>
+          <button type="button" className="quiet" onClick={keep} disabled={!name} aria-pressed={kept.has(name)}>
+            {kept.has(name) ? "kept" : "keep"}
+          </button>
           <button type="button" className="quiet" onClick={copy} disabled={!name}>
             {copied ? "copied" : "copy"}
           </button>
@@ -171,7 +209,7 @@ export default function App() {
             {names.map((n, i) =>
               i === pick ? null : (
                 <li key={n}>
-                  <button type="button" className="link" onClick={() => setPick(i)}>{n}</button>
+                  <button type="button" className="link mono" onClick={() => setPick(i)}>{n}</button>
                 </li>
               ),
             )}
@@ -181,12 +219,12 @@ export default function App() {
 
       <footer>
         <p>
-          A 49k-parameter character model trained on {model?.manifest.training.names.toLocaleString() ?? "18,947"} names
+          A 49k-parameter character model trained on {model?.manifest.training.names.toLocaleString() ?? "14,335"} names
           from Homebrew and the YC directory. It runs in your browser: no LLM, no server, and the seed in the URL
           reproduces this exact batch.
         </p>
         <p className="muted">blither is what the first version of this model called itself. Not affiliated with Homebrew or Y Combinator.</p>
       </footer>
-    </main>
+    </>
   );
 }

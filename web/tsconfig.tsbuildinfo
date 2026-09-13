@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/lib/check.ts","./src/lib/generate.ts","./src/lib/model.ts"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/history.tsx","./src/main.tsx","./src/lib/check.ts","./src/lib/generate.ts","./src/lib/model.ts","./src/lib/store.ts"],"version":"5.9.3"}
