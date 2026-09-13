@@ -1,6 +1,6 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties, type FormEvent } from "react";
 import { checkName, type Check } from "./lib/check";
-import { generate, randomSeed, type Style } from "./lib/generate";
+import { cleanHints, generate, randomSeed, type Style } from "./lib/generate";
 import { loadModel, type Model } from "./lib/model";
 
 const CATEGORIES = ["cli", "app", "startup", "any"] as const;
@@ -18,6 +18,7 @@ function readUrl() {
     category: category && CATEGORIES.includes(category) ? category : "cli",
     style: style && STYLES.includes(style) ? style : "sensible",
     seed: Number.isInteger(seed) && seed > 0 ? seed : randomSeed(),
+    hints: params.get("hints") ?? "",
   };
 }
 
@@ -50,7 +51,8 @@ function useTyped(text: string): string {
 
 export default function App() {
   const [model, setModel] = useState<Model | null>(null);
-  const [{ category, style, seed }, setState] = useState(readUrl);
+  const [{ category, style, seed, hints }, setState] = useState(readUrl);
+  const [draft, setDraft] = useState(hints);
   const [names, setNames] = useState<string[]>([]);
   const [pick, setPick] = useState(0);
   const [checks, setChecks] = useState<Check[] | null>(null);
@@ -63,10 +65,17 @@ export default function App() {
   // Regenerate whenever the inputs change, and keep the URL shareable.
   useEffect(() => {
     if (!model) return;
-    setNames(generate(model, category, style, BATCH, seed));
+    setNames(generate(model, category, style, BATCH, seed, cleanHints(hints)));
     setPick(0);
-    history.replaceState(null, "", `?for=${category}&style=${style}&seed=${seed}`);
-  }, [model, category, style, seed]);
+    const query = new URLSearchParams({ for: category, style, seed: String(seed) });
+    if (hints) query.set("hints", hints);
+    history.replaceState(null, "", `?${query}`);
+  }, [model, category, style, seed, hints]);
+
+  function applyHints(event: FormEvent) {
+    event.preventDefault();
+    setState((s) => ({ ...s, hints: cleanHints(draft).join(" "), seed: randomSeed() }));
+  }
 
   const name = names[pick] ?? "";
   const typed = useTyped(name);
@@ -119,6 +128,12 @@ export default function App() {
       </section>
 
       <section className="controls">
+        <form className="hints" onSubmit={applyHints}>
+          <label htmlFor="hints">about</label>
+          <input id="hints" value={draft} onChange={(e) => setDraft(e.target.value)}
+            placeholder="a few words on what it does" maxLength={60} autoComplete="off" spellCheck={false} />
+          <button type="submit" className="quiet" disabled={!model || cleanHints(draft).join(" ") === hints}>use</button>
+        </form>
         <fieldset>
           <legend>for a</legend>
           {CATEGORIES.map((c) => (
@@ -170,7 +185,7 @@ export default function App() {
           from Homebrew and the YC directory. It runs in your browser: no LLM, no server, and the seed in the URL
           reproduces this exact batch.
         </p>
-        <p className="muted">blither is the model's own output (cli, sensible, seed 2, ninth of ten). Not affiliated with Homebrew or Y Combinator.</p>
+        <p className="muted">blither is what the first version of this model called itself. Not affiliated with Homebrew or Y Combinator.</p>
       </footer>
     </main>
   );

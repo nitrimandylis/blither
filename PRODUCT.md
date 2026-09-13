@@ -11,13 +11,17 @@ want: Homebrew formulae (cli), Homebrew casks (app), the YC directory (startup).
 
 ## Where it is
 
-- Model trained, exported, and running in the Vite app. Seeds reproduce batches.
+- Model trained on the filtered corpus (no lib*, digits, hyphens), exported, running in the Vite app.
+- Hints: up to four words about the product; the batch is three hint+word-part names
+  scored by the model, one model completion of a hint, one pure sample.
+- Acceptance test: replay eight of Nick's real names from their descriptions and see
+  whether the batch has a shortlist-worthy name (bar: 4 of the first 5). Not yet judged.
 - Not yet on GitHub or Vercel.
 
 ## Where it is headed
 
 - Deploy to Vercel (root directory: `web`).
-- Maybe: more corpora (npm top packages, PyPI) if the cli names feel too Homebrew-shaped.
+- Rejected: npm as a corpus, it is more hyphenated than Homebrew. Filtering fixed the shape.
 - Not doing: an LLM, a backend, accounts, saved names.
 
 ## Retrain
