@@ -21,7 +21,7 @@
 
 ## 🔤 What is this
 
-Naming a project is the part that takes longest. blither does it badly and fast: a character-level neural net, trained from scratch in NumPy on 5,551 Homebrew formulae, 3,038 casks and 5,746 YC companies, guesses one letter at a time until it hits the end of a word. You tell it what you are naming (cli, app, startup), a few words about what it does, and how bold to be, and it hands you a batch: the model finishing your words (`focus` becomes `focuscope`), your words glued to the parts real names are made of (`token` + `wave`, ranked by how name-like the model finds them), and one pure roll of the dice. Every name is then checked live against npm, Homebrew, PyPI, crates.io or the .com/.dev/.ai registries, so you find out it is taken before you get attached.
+Naming a project is the part that takes longest. blither does it badly and fast: a character-level neural net, trained from scratch in NumPy on 5,551 Homebrew formulae, 3,038 casks and 5,746 YC companies, guesses one letter at a time until it hits the end of a word. You tell it what you are naming (cli, app, startup), a few words about what it does, and how bold to be, and it hands you a batch: two of your words glued to the parts real names are made of (`token` + `wave`, ranked by how name-like the model finds them) and three spins of the model itself, some started from your words (`focus` becomes `focuscope`), some from nothing. Every name is then checked live against npm, Homebrew, PyPI, crates.io or the .com/.dev/.ai registries, so you find out it is taken before you get attached.
 
 The model is 195 KB of float32 and runs in the page. There is no server, no API key and nothing to rate-limit. The seed sits in the URL, so a batch you liked is a link, not a screenshot.
 
@@ -38,12 +38,14 @@ nick@blither:~$ uv run --with numpy model/train.py
 
 | | knob | what it actually does |
 |---|---|---|
-| 01 | **about** | up to four words on what the thing does. each one gets completed by the model from its first 3 to 5 letters, and glued to 60 word parts (pilot, cast, hub, flow, stack...) both ways, with the model scoring which combos sound like names. leave it empty for the pure wheel |
-| 02 | **for a: cli / app / startup / any** | picks the category embedding fed into the model. cli names come out hyphenated and lowercase, startups come out with "ai" glued on the end. any rolls a category per name |
-| 03 | **sounding: sensible / bold / unhinged** | sampling temperature, 0.66 up to 1.24. sensible sticks to letters the model is sure about, unhinged does not |
+| 01 | **about** | up to four words on what the thing does. each one gets completed by the model from its first 3 to 5 letters, and glued to the word parts real names use (pilot, cast, hub, flow, stack...) both ways, with the model scoring which combos sound like names. leave it empty for the pure wheel |
+| 02 | **for a: cli / app / startup** | picks the category embedding fed into the model. cli names come out short and lowercase, startups come out with "ai" or "health" glued on the end |
+| 03 | **sounding: sensible / bold / unhinged** | sampling temperature, 0.66 up to 1.24, and which word parts are allowed: sensible glues hub, kit, box, log; bold and unhinged add scope, forge, pulse, wire |
 | 04 | **another** | new seed, new batch of five. the URL updates so you can send it to someone |
-| 05 | **the registry list** | one fetch per registry straight from the browser (they all allow CORS). 404 means free, 200 means someone got there first |
-| 06 | **also in this batch** | the other four. with hints the five are three glued, one completed, one wheel; at most two per hint word so it is not five takes on "fatigue" |
+| 05 | **the registry list** | one fetch per registry straight from the browser (they all allow CORS). cli checks npm, brew, pypi, crates.io; app and startup check .com, .app, .ai, .dev over RDAP. 404 means free, 200 means someone got there first |
+| 06 | **also in this batch** | the other four. with hints the five are two glued and three spun; at most two per hint word so it is not five takes on "fatigue" |
+| 07 | **keep, and history** | keep pins a name; /history lists the pinned ones and every batch you have generated, newest first, with a link back to each. all of it in localStorage, this browser only |
+| 08 | **dark** | a toggle in the header, remembered. so are your last category and style |
 
 ## 🚀 Run it
 
@@ -84,11 +86,12 @@ flowchart LR
 | `web/src/lib/model.ts` | loads the weights and runs one forward pass, same maths as the trainer |
 | `web/src/lib/generate.ts` | seeded sampling (mulberry32), hint completion, hint gluing scored by the model, usability filters, edit-distance check against every known name |
 | `web/src/lib/check.ts` | availability lookups per category, all client side |
-| `web/src/App.tsx` | the one page |
+| `web/src/App.tsx` | the page: header, namer, footer. `/history` renders `History.tsx` instead |
+| `web/src/lib/store.ts` | localStorage: kept names, the last 200 batches, theme and control preferences |
 
 The architecture is the Bengio et al. 2003 neural probabilistic language model: the previous 10 characters go through 24-dim embeddings, get concatenated with a 12-dim category embedding, pass a 160-unit tanh layer and come out as logits over 44 tokens. Nothing in it is newer than 2003 except the browser.
 
-**Stack:** NumPy · Vite · React · TypeScript · IBM Plex
+**Stack:** NumPy · Vite · React · TypeScript · Alpino and IBM Plex Mono, self-hosted
 
 ---
 

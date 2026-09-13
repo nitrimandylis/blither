@@ -12,17 +12,20 @@ want: Homebrew formulae (cli), Homebrew casks (app), the YC directory (startup).
 ## Where it is
 
 - Model trained on the filtered corpus (no lib*, digits, hyphens), exported, running in the Vite app.
-- Hints: up to four words about the product; the batch is three hint+word-part names
-  scored by the model, one model completion of a hint, one pure sample.
-- Acceptance test: replay eight of Nick's real names from their descriptions and see
-  whether the batch has a shortlist-worthy name (bar: 4 of the first 5). Not yet judged.
-- Not yet on GitHub or Vercel.
+- Hints: up to four words about the product; the batch is two hint+word-part names
+  scored by the model and three model spins, hint-started ones ranked first.
+  Style picks the temperatures and which word parts are allowed.
+- Acceptance test passed 2026-09-13: eight real names replayed from their descriptions.
+- History at /history: kept names and every batch, localStorage. Dark mode toggle.
+  Alpino + Plex Mono self-hosted. Category and style remembered.
+- Public on GitHub. Vercel import (Root Directory `web`) is Nick's step.
 
 ## Where it is headed
 
-- Deploy to Vercel (root directory: `web`).
+- Vercel goes live once imported.
+- Maybe: `renamed` state on the name-it button; a per-name page. Neither asked for.
 - Rejected: npm as a corpus, it is more hyphenated than Homebrew. Filtering fixed the shape.
-- Not doing: an LLM, a backend, accounts, saved names.
+- Not doing: an LLM, a backend, accounts, a GitHub availability check, `any` category.
 
 ## Retrain
 
