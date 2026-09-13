@@ -18,11 +18,10 @@ want: Homebrew formulae (cli), Homebrew casks (app), the YC directory (startup).
 - Acceptance test passed 2026-09-13: eight real names replayed from their descriptions.
 - History at /history: kept names and every batch, localStorage. Dark mode toggle.
   Alpino + Plex Mono self-hosted. Category and style remembered.
-- Public on GitHub. Vercel import (Root Directory `web`) is Nick's step.
+- Live at https://blither.vercel.app since 2026-09-13, redeploys on push to main.
 
 ## Where it is headed
 
-- Vercel goes live once imported.
 - Maybe: `renamed` state on the name-it button; a per-name page. Neither asked for.
 - Rejected: npm as a corpus, it is more hyphenated than Homebrew. Filtering fixed the shape.
 - Not doing: an LLM, a backend, accounts, a GitHub availability check, `any` category.
