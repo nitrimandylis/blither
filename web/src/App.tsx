@@ -50,6 +50,8 @@ function useTheme() {
   const [theme, setTheme] = useState(() => store.prefs().theme ?? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
+    // the browser bar and the installed app's status bar follow the page
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#12161e" : "#eef1f4");
   }, [theme]);
   function toggle() {
     const next = theme === "dark" ? "light" : "dark";

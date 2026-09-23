@@ -4,8 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" content="#eef1f4" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#12161e" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#eef1f4" />
     <meta name="description" content="Names for your next CLI, app or startup, from a tiny character model that runs in your browser." />
     <meta property="og:title" content="blither" />
     <meta property="og:description" content="Names for your next CLI, app or startup, from a tiny character model that runs in your browser." />
@@ -17,6 +16,12 @@
     <meta name="twitter:card" content="summary_large_image" />
     <title>blither</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="blither" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <link rel="preload" href="/fonts/plex-mono-500.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/alpino-400.woff2" as="font" type="font/woff2" crossorigin />
     <script>
@@ -25,6 +30,7 @@
         var prefs = JSON.parse(localStorage.getItem("blither.prefs") || "{}");
         var theme = prefs.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
         document.documentElement.dataset.theme = theme;
+        if (theme === "dark") document.querySelector('meta[name="theme-color"]').content = "#12161e";
       } catch (e) {}
     </script>
   </head>

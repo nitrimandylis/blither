@@ -19,6 +19,7 @@ want: Homebrew formulae (cli), Homebrew casks (app), the YC directory (startup).
 - History at /history: kept names and every batch, localStorage. Dark mode toggle.
   Alpino + Plex Mono self-hosted. Category and style remembered.
 - Live at https://blither.vercel.app since 2026-09-13, redeploys on push to main.
+- Installable PWA (manifest, apple tags, PNG icons) since 2026-09-23; theme-color follows the toggle.
 
 ## Where it is headed
 
