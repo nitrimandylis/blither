@@ -20,6 +20,7 @@ want: Homebrew formulae (cli), Homebrew casks (app), the YC directory (startup).
   Alpino + Plex Mono self-hosted. Category and style remembered.
 - Live at https://blither.vercel.app since 2026-09-13, redeploys on push to main.
 - Installable PWA (manifest, apple tags, PNG icons) since 2026-09-23; theme-color follows the toggle.
+- Works offline: `web/public/sw.js`, network first, saves app, model and fonts. Checks show unknown offline.
 
 ## Where it is headed
 
