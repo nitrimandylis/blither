@@ -391,9 +391,7 @@ footer p {
   width: 5.5rem;
   height: 5.5rem;
   flex: none;
-  background: var(--ink);
-  mask-size: 100% 100%;
-  -webkit-mask-size: 100% 100%;
+  color: var(--ink);
 }
 .mark.drawing {
   background: var(--rule);

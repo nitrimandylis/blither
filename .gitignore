@@ -7,3 +7,4 @@ dist/
 data/logos.npz
 model/runs/
 __pycache__/
+data/svg_tokens.npz
