@@ -4,6 +4,7 @@ import { cleanHints, generate, randomSeed, type Style } from "./lib/generate";
 import { loadModel, type Model } from "./lib/model";
 import { batchUrl, store } from "./lib/store";
 import History from "./History";
+import Mark from "./Mark";
 
 const CATEGORIES = ["cli", "app", "startup"] as const;
 const STYLES: Style[] = ["sensible", "bold", "unhinged"];
@@ -153,6 +154,7 @@ function Namer() {
         ) : (
           <h1 className="name muted" style={{ "--len": 17 } as CSSProperties}>loading the model</h1>
         )}
+        {model && <Mark name={name} />}
         <ul className="checks">
           {(checks ?? []).map((c) => (
             <li key={c.label}>
