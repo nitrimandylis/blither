@@ -34,12 +34,13 @@ def sample_like_the_browser(session, method, noise, steps, guidance):
         t_now, t_next = 1 - i / steps, 1 - (i + 1) / steps
         if method == "ddpm":
             t_now, t_next = min(t_now, 0.999), min(t_next, 0.999)
+        batch = 1 if guidance == 1 else 2
         out = session.run(None, {
-            "x": np.stack([x, x]).reshape(2, 1, 48, 48),
-            "t": np.array([t_now, t_now], np.float32),
-            "label": np.array([0, NO_LABEL], np.int64),
-        })[0].reshape(2, -1)
-        pred = out[1] + guidance * (out[0] - out[1])
+            "x": np.stack([x, x][:batch]).reshape(batch, 1, 48, 48),
+            "t": np.full(batch, t_now, np.float32),
+            "label": np.array([0, NO_LABEL][:batch], np.int64),
+        })[0].reshape(batch, -1)
+        pred = out[0] if batch == 1 else out[1] + guidance * (out[0] - out[1])
         if method == "ddpm":
             a_now, a_next = alpha_bar(t_now), alpha_bar(t_next)
             x0 = np.clip((x - math.sqrt(1 - a_now) * pred) / math.sqrt(a_now), -1, 1)

@@ -71,21 +71,26 @@ export async function drawMark(name: string, variant: number): Promise<Float32Ar
       tNext = Math.min(tNext, 0.999);
     }
 
-    // One call with a batch of two: with the brand label and without, for guidance.
-    const input = new Float32Array(pixels * 2);
+    // With guidance, one call with a batch of two: with the brand label and without.
+    const batch = guidance === 1 ? 1 : 2;
+    const input = new Float32Array(pixels * batch);
+    const times = new Float32Array(batch).fill(tNow);
+    const labels = new BigInt64Array(batch).fill(BigInt(BRAND));
     input.set(x, 0);
-    input.set(x, pixels);
+    if (batch === 2) {
+      input.set(x, pixels);
+      labels[1] = BigInt(NO_LABEL);
+    }
     const result = await session.run({
-      x: new ort.Tensor("float32", input, [2, 1, SIZE, SIZE]),
-      t: new ort.Tensor("float32", new Float32Array([tNow, tNow]), [2]),
-      label: new ort.Tensor("int64", new BigInt64Array([BigInt(BRAND), BigInt(NO_LABEL)]), [2]),
+      x: new ort.Tensor("float32", input, [batch, 1, SIZE, SIZE]),
+      t: new ort.Tensor("float32", times, [batch]),
+      label: new ort.Tensor("int64", labels, [batch]),
     });
     const out = result.out.data as Float32Array;
 
     for (let p = 0; p < pixels; p++) {
       const withLabel = out[p];
-      const without = out[pixels + p];
-      const pred = without + guidance * (withLabel - without);
+      const pred = batch === 1 ? withLabel : out[pixels + p] + guidance * (withLabel - out[pixels + p]);
       if (method === "ddpm") {
         // DDIM: estimate the clean image, then re-noise it to the next level
         const aNow = alphaBar(tNow);
