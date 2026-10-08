@@ -34,8 +34,8 @@ export const store = {
     write("blither.batches", [batch, ...rest].slice(0, MAX_BATCHES));
   },
 
-  prefs: () => read<{ category?: string; style?: string; theme?: string; marks?: string }>("blither.prefs", {}),
-  setPref(key: "category" | "style" | "theme" | "marks", value: string) {
+  prefs: () => read<{ category?: string; style?: string; theme?: string }>("blither.prefs", {}),
+  setPref(key: "category" | "style" | "theme", value: string) {
     write("blither.prefs", { ...store.prefs(), [key]: value });
   },
 };

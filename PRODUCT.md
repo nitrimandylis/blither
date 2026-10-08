@@ -21,16 +21,17 @@ want: Homebrew formulae (cli), Homebrew casks (app), the YC directory (startup).
 - Live at https://blither.vercel.app since 2026-09-13, redeploys on push to main.
 - Installable PWA (manifest, apple tags, PNG icons) since 2026-09-23; theme-color follows the toggle.
 - Works offline: `web/public/sw.js`, network first, saves app, model and fonts. Checks show unknown offline.
-- Marks (2026-10-08): "draw a mark" turns on a flow-matching U-Net (1.3M params, ONNX, onnxruntime-web,
-  lazy-loaded) that draws a 48px mark seeded by the name; traced to SVG in the browser; "save svg".
-  Beat DDPM, a narrower U-Net and an SVG token GPT on the same data (table in the README).
+- Marks (2026-10-08): every name gets a procedural geometric mark (2x2 tiles, rotational symmetry),
+  seeded by the name; "another mark", "save svg". Image models (flow matching, DDPM, an SVG token GPT)
+  were trained first and dropped: the output was not usable (table in the README).
 
 ## Where it is headed
 
 - Maybe: `renamed` state on the name-it button; a per-name page. Neither asked for.
 - Rejected: npm as a corpus, it is more hyphenated than Homebrew. Filtering fixed the shape.
 - Not doing: an LLM, a backend, accounts, a GitHub availability check, `any` category.
-- Marks, maybe: simplify the traced path (12 KB per SVG now); colour; a mark per batch name.
+- Marks, maybe: colour; a mark per batch name.
+- Not doing: an image model for marks, tried and it drew blobs.
 
 ## Retrain
 

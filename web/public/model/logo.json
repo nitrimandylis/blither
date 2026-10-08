@@ -1,6 +1,0 @@
-{
-  "method": "flow",
-  "steps": 32,
-  "guidance": 1.0,
-  "run": "flow-w48-s30000"
-}

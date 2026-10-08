@@ -393,18 +393,3 @@ footer p {
   flex: none;
   color: var(--ink);
 }
-.mark.drawing {
-  background: var(--rule);
-  border-radius: 0.3rem;
-  animation: drawing 1.2s ease-in-out infinite alternate;
-}
-@keyframes drawing {
-  to {
-    opacity: 0.4;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .mark.drawing {
-    animation: none;
-  }
-}
