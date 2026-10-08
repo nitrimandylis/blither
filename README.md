@@ -44,9 +44,9 @@ nick@blither:~$ uv run --with numpy model/train.py
 | 04 | **another** | new seed, new batch of five. the URL updates so you can send it to someone |
 | 05 | **the registry list** | one fetch per registry straight from the browser (they all allow CORS). cli checks npm, brew, pypi, crates.io; app and startup check .com, .app, .ai, .dev over RDAP. 404 means free, 200 means someone got there first |
 | 06 | **also in this batch** | the other four. with hints the five are two glued and three spun; at most two per hint word so it is not five takes on "fatigue" |
-| 07 | **keep, and history** | keep pins a name; /history lists the pinned ones and every batch you have generated, newest first, with a link back to each. all of it in localStorage, this browser only |
+| 07 | **keep, and history** | keep pins a name; /history shows the pinned ones as a sheet of marks and every batch you have generated, newest first, with a link back to each. all of it in localStorage, this browser only |
 | 08 | **dark** | a toggle in the header, remembered. so are your last category and style |
-| 09 | **a mark** | every name gets a geometric mark: four tiles (quarter circles, half circles, leaves, triangles) on a 2x2 grid, mostly turned with rotational symmetry. seeded by the name, so the same name always gets the same mark. **another mark** tries the next one, **save svg** downloads it |
+| 09 | **a mark** | every name gets a geometric mark: four tiles (quarter circles, half circles, leaves, triangles) on a 2x2 grid, mostly turned with rotational symmetry. it sits beside the name like a logo and builds in as the name types. seeded by the name, so the same name always gets the same mark. **‹ ›** (or the arrow keys) step through more, **save svg** downloads it. kept names remember their mark, and the URL carries the name and mark you are on |
 
 ## 🚀 Run it
 

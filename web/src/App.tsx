@@ -2,9 +2,9 @@ import { useEffect, useState, type CSSProperties, type FormEvent } from "react";
 import { checkName, type Check } from "./lib/check";
 import { cleanHints, generate, randomSeed, type Style } from "./lib/generate";
 import { loadModel, type Model } from "./lib/model";
-import { batchUrl, store } from "./lib/store";
+import { batchUrl, readCount, store } from "./lib/store";
 import History from "./History";
-import Mark from "./Mark";
+import { Mark, MarkControls } from "./Mark";
 
 const CATEGORIES = ["cli", "app", "startup"] as const;
 const STYLES: Style[] = ["sensible", "bold", "unhinged"];
@@ -24,6 +24,12 @@ function readInitial() {
     seed: Number.isInteger(seed) && seed > 0 ? seed : randomSeed(),
     hints: params.get("hints") ?? "",
   };
+}
+
+// Which name in the batch, and which of its marks, for a link that points at one name.
+function readPlace() {
+  const params = new URLSearchParams(location.search);
+  return { pick: readCount(params, "pick"), mark: readCount(params, "mark") };
 }
 
 // Types the name out one character at a time. Skipped when the user prefers reduced motion.
@@ -87,7 +93,9 @@ function Namer() {
   const [{ category, style, seed, hints }, setState] = useState(readInitial);
   const [draft, setDraft] = useState(hints);
   const [names, setNames] = useState<string[]>([]);
-  const [pick, setPick] = useState(0);
+  const [pick, setPick] = useState(() => readPlace().pick);
+  const [mark, setMark] = useState(() => readPlace().mark);
+  const [stepped, setStepped] = useState(false);   // stepped marks swap instantly, a new name builds its mark in
   const [checks, setChecks] = useState<Check[] | null>(null);
   const [copied, setCopied] = useState(false);
   const [kept, setKept] = useState(() => new Set(store.kept().map((k) => k.name)));
@@ -101,14 +109,39 @@ function Namer() {
     if (!model) return;
     const batch = generate(model, category, style, BATCH, seed, cleanHints(hints));
     setNames(batch);
-    setPick(0);
-    history.replaceState(null, "", batchUrl({ category, style, seed, hints }));
     store.setPref("category", category);
     store.setPref("style", style);
     store.logBatch({ names: batch, category, style, hints, seed, at: Date.now() });
   }, [model, category, style, seed, hints]);
 
-  const name = names[pick] ?? "";
+  // A new batch starts on its first name and first mark.
+  function newBatch(change: Partial<{ category: Category; style: Style; seed: number; hints: string }>) {
+    setState((s) => ({ ...s, ...change }));
+    setPick(0);
+    setMark(0);
+    setStepped(false);
+  }
+
+  // Switching to a kept name brings back the mark it was kept with.
+  function choose(i: number) {
+    setPick(i);
+    setMark(store.kept().find((k) => k.name === names[i])?.mark ?? 0);
+    setStepped(false);
+  }
+
+  // A kept name remembers the mark you settle on, not just the one it had when kept.
+  function stepMark(variant: number) {
+    setMark(variant);
+    setStepped(true);
+    const entry = store.kept().find((k) => k.name === name);
+    if (entry) store.keep({ ...entry, mark: variant });
+  }
+
+  useEffect(() => {
+    history.replaceState(null, "", batchUrl({ category, style, seed, hints, pick, mark }));
+  }, [category, style, seed, hints, pick, mark]);
+
+  const name = names[pick] ?? names[0] ?? "";
   const typed = useTyped(name);
 
   useEffect(() => {
@@ -126,7 +159,7 @@ function Namer() {
 
   function applyHints(event: FormEvent) {
     event.preventDefault();
-    setState((s) => ({ ...s, hints: cleanHints(draft).join(" "), seed: randomSeed() }));
+    newBatch({ hints: cleanHints(draft).join(" "), seed: randomSeed() });
   }
 
   function copy() {
@@ -137,7 +170,7 @@ function Namer() {
     if (kept.has(name)) {
       store.unkeep(name);
     } else {
-      store.keep({ name, category, style, hints, seed, at: Date.now() });
+      store.keep({ name, category, style, hints, seed, at: Date.now(), pick, mark });
     }
     setKept(new Set(store.kept().map((k) => k.name)));
   }
@@ -147,14 +180,18 @@ function Namer() {
       <section className="hero" aria-live="polite">
         <p className="lead">your next {category} is called</p>
         {model ? (
-          <h1 className="name" style={{ "--len": Math.max(name.length, 6) } as CSSProperties}>
-            {typed}
-            <span className="caret" aria-hidden="true" />
-          </h1>
+          // the mark takes about two characters of width, so --len counts it
+          <div className="lockup" style={{ "--len": Math.max(name.length, 6) + 2 } as CSSProperties}>
+            {name && <Mark name={name} variant={mark} build={!stepped} />}
+            <h1 className="name">
+              {typed}
+              <span className="caret" aria-hidden="true" />
+            </h1>
+          </div>
         ) : (
           <h1 className="name muted" style={{ "--len": 17 } as CSSProperties}>loading the model</h1>
         )}
-        {model && <Mark name={name} />}
+        {model && name && <MarkControls name={name} variant={mark} setVariant={stepMark} />}
         <ul className="checks">
           {(checks ?? []).map((c) => (
             <li key={c.label}>
@@ -178,7 +215,7 @@ function Namer() {
           {CATEGORIES.map((c) => (
             <label key={c}>
               <input type="radio" name="category" value={c} checked={category === c}
-                onChange={() => setState((s) => ({ ...s, category: c }))} />
+                onChange={() => newBatch({ category: c })} />
               {c}
             </label>
           ))}
@@ -188,13 +225,13 @@ function Namer() {
           {STYLES.map((s) => (
             <label key={s}>
               <input type="radio" name="style" value={s} checked={style === s}
-                onChange={() => setState((prev) => ({ ...prev, style: s }))} />
+                onChange={() => newBatch({ style: s })} />
               {s}
             </label>
           ))}
         </fieldset>
         <div className="actions">
-          <button type="button" onClick={() => setState((s) => ({ ...s, seed: randomSeed() }))} disabled={!model}>
+          <button type="button" onClick={() => newBatch({ seed: randomSeed() })} disabled={!model}>
             another
           </button>
           <button type="button" className="quiet" onClick={keep} disabled={!name} aria-pressed={kept.has(name)}>
@@ -213,7 +250,7 @@ function Namer() {
             {names.map((n, i) =>
               i === pick ? null : (
                 <li key={n}>
-                  <button type="button" className="link mono" onClick={() => setPick(i)}>{n}</button>
+                  <button type="button" className="link mono" onClick={() => choose(i)}>{n}</button>
                 </li>
               ),
             )}

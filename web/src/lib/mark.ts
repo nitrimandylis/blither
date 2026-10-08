@@ -1,7 +1,7 @@
 // Draws a 48x48 logo mark for a name: a 2x2 grid of geometric tiles (quarter
 // circles, half circles, leaves, triangles), usually arranged with rotational
 // symmetry so it reads as one mark. The same name and variant always give the
-// same mark. Returns one SVG path, filled with fill-rule evenodd.
+// same mark.
 
 import { mulberry32 } from "./generate";
 
@@ -83,7 +83,8 @@ function hash(text: string): number {
   return h >>> 0;
 }
 
-export function drawMark(name: string, variant: number): string {
+// One SVG path per tile, clockwise from the top-left, so the page can build them in one by one.
+export function drawTiles(name: string, variant: number): string[] {
   const random = mulberry32(hash(`${name}#${variant}`));
   const pick = (n: number) => Math.floor(random() * n);
 
@@ -115,7 +116,23 @@ export function drawMark(name: string, variant: number): string {
     }
   }
 
-  const parts: string[] = [];
-  for (let cell = 0; cell < 4; cell++) parts.push(tilePath(TILES[tiles[cell]], cell, turns[cell]));
-  return parts.join("");
+  const paths: string[] = [];
+  for (let cell = 0; cell < 4; cell++) paths.push(tilePath(TILES[tiles[cell]], cell, turns[cell]));
+  return paths;
+}
+
+// The whole mark as one path.
+export function drawMark(name: string, variant: number): string {
+  return drawTiles(name, variant).join("");
+}
+
+// Downloads the mark as name.svg. currentColor is black on its own and takes the
+// text colour when the file is inlined into a page.
+export function saveMark(name: string, variant: number) {
+  const file = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="currentColor" d="${drawMark(name, variant)}"/></svg>\n`;
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(new Blob([file], { type: "image/svg+xml" }));
+  link.download = `${name}.svg`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);   // Safari cancels the download if revoked at once
 }
