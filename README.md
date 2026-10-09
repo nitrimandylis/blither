@@ -15,6 +15,8 @@
 
 ![model](https://img.shields.io/badge/parameters-49k-1f3fbf?style=flat-square&labelColor=111111) ![corpus](https://img.shields.io/badge/training_names-14,335-1f3fbf?style=flat-square&labelColor=111111) ![runtime](https://img.shields.io/badge/runs_in-your_browser-157a4b?style=flat-square&labelColor=111111) ![backend](https://img.shields.io/badge/backend-none-157a4b?style=flat-square&labelColor=111111) ![llm](https://img.shields.io/badge/llm_calls-0_(it_just_guesses_letters)-157a4b?style=flat-square&labelColor=111111)
 
+[![blither naming a cli from "terminal fast": fastdock, free on npm, brew and crates.io, taken on pypi](.github/assets/screenshot.jpg)](https://blither.vercel.app)
+
 </div>
 
 ---
