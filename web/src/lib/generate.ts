@@ -23,7 +23,7 @@ const FILLER = new Set(["ai", "labs", "health", "app", "cli", "io", "tech", "bio
 const BLOCKED = ["fuck", "shit", "bitch", "cunt", "dick", "cock", "pussy", "nigg", "fag", "slut", "whore"];
 
 // Deterministic PRNG so a seed in the URL reproduces the batch.
-function mulberry32(seed: number): () => number {
+export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
   return () => {
     a += 0x6d2b79f5;

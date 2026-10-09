@@ -44,8 +44,9 @@ nick@blither:~$ uv run --with numpy model/train.py
 | 04 | **another** | new seed, new batch of five. the URL updates so you can send it to someone |
 | 05 | **the registry list** | one fetch per registry straight from the browser (they all allow CORS). cli checks npm, brew, pypi, crates.io; app and startup check .com, .app, .ai, .dev over RDAP. 404 means free, 200 means someone got there first |
 | 06 | **also in this batch** | the other four. with hints the five are two glued and three spun; at most two per hint word so it is not five takes on "fatigue" |
-| 07 | **keep, and history** | keep pins a name; /history lists the pinned ones and every batch you have generated, newest first, with a link back to each. all of it in localStorage, this browser only |
+| 07 | **keep, and history** | keep pins a name; /history shows the pinned ones as a sheet of marks and every batch you have generated, newest first, with a link back to each. all of it in localStorage, this browser only |
 | 08 | **dark** | a toggle in the header, remembered. so are your last category and style |
+| 09 | **a mark** | every name gets a geometric mark: four tiles (quarter circles, half circles, leaves, triangles) on a 2x2 grid, mostly turned with rotational symmetry. it sits beside the name like a logo and builds in as the name types. seeded by the name, so the same name always gets the same mark. **‹ ›** (or the arrow keys) step through more, **save svg** downloads it. kept names remember their mark, and the URL carries the name and mark you are on |
 
 ## 🚀 Run it
 
@@ -66,6 +67,14 @@ uv run --with numpy model/train.py
 ```
 
 It overfits past 4,000 steps, so the default stops there.
+
+The marks are procedural and need no training. The image models that were tried first (see below) need PyTorch and `rsvg-convert` (`brew install librsvg`), and about two and a half hours on an M3 Pro:
+
+```bash
+python data/build_logos.py
+python model/logo_train.py --method flow --width 48 --steps 30000
+python model/logo_export.py flow-w48-s30000 --steps 32
+```
 
 ## 🔩 Under the hood
 
@@ -88,8 +97,27 @@ flowchart LR
 | `web/src/lib/check.ts` | availability lookups per category, all client side |
 | `web/src/App.tsx` | the page: header, namer, footer. `/history` renders `History.tsx` instead |
 | `web/src/lib/store.ts` | localStorage: kept names, the last 200 batches, theme and control preferences |
+| `data/build_logos.py` | renders 5,796 solid icons (Simple Icons, Phosphor, Tabler) to 48x48 ink masks |
+| `model/logo_train.py` | the image model that was tried: a 1.3M-parameter U-Net, trainable as DDPM or flow matching |
+| `model/logo_eval.py` | scores runs against each other: Frechet distance, copies of training marks, speed |
+| `model/logo_export.py` | exports to ONNX and checks the browser's sampling loop matches PyTorch |
+| `web/src/lib/mark.ts` | the mark: picks and turns four tiles from a seed, returns one SVG path |
 
 The architecture is the Bengio et al. 2003 neural probabilistic language model: the previous 10 characters go through 24-dim embeddings, get concatenated with a 12-dim category embedding, pass a 160-unit tanh layer and come out as logits over 44 tokens. Nothing in it is newer than 2003 except the browser.
+
+### Why the marks are not a model
+
+Four models were trained on the same 5,796 icons and scored the same way: Frechet distance in the feature space of a small autoencoder trained on the icons (FID's idea, without a photo network), plus how many samples copy a training mark.
+
+| model | fd (real vs real: 30) | copies | |
+|---|---|---|---|
+| **flow matching, U-Net width 48, 30k steps** | **82** | 0% | best of the four |
+| flow matching, width 48, 12k steps | 83 | 0% | same score, raggier edges |
+| flow matching, width 32, 12k steps | 87 | 0% | half the cost, nearly as good |
+| DDPM, width 48, 12k steps | 112 | 0% | noisier at the same budget |
+| SVG token GPT (IconShop-style), 1.9M params | 176 | 0.8% | real vectors, but shards; memorised after 5.5k steps |
+
+Even the best one, 82 against a real-vs-real floor of 30, drew blobs, scribbles and fake lettering, not something you could use as a placeholder, and 30k steps scored the same as 12k. A 48px model trained on 5,796 mixed icons does not learn clean geometry, so the shipped marks are built from geometry directly. The training code stays as the record.
 
 **Stack:** NumPy · Vite · React · TypeScript · Alpino and IBM Plex Mono, self-hosted
 
