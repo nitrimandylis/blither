@@ -18,7 +18,7 @@ want: Homebrew formulae (cli), Homebrew casks (app), the YC directory (startup).
 - Acceptance test passed 2026-09-13: eight real names replayed from their descriptions.
 - History at /history: kept names and every batch, localStorage. Dark mode toggle.
   Alpino + Plex Mono self-hosted. Category and style remembered.
-- Live at https://blither.vercel.app since 2026-09-13, redeploys on push to main.
+- Live at https://blither.nicktrim.com since 2026-09-13, redeploys on push to main.
 - Installable PWA (manifest, apple tags, PNG icons) since 2026-09-23; theme-color follows the toggle.
 - Works offline: `web/public/sw.js`, network first, saves app, model and fonts. Checks show unknown offline.
 - Marks (2026-10-08): every name gets a procedural geometric mark (2x2 tiles, rotational symmetry),
